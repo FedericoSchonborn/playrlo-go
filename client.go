@@ -51,6 +51,24 @@ func NewClient(config *Config) *Client {
 	}
 }
 
+func (c *Client) Compile(params CompileRequest) (CompileResponse, error) {
+	raw, err := clientPost[CompileRequest, rawCompileResponse](c, "/compile", params)
+	if err != nil {
+		return CompileResponse{}, err
+	}
+
+	if raw.Error != "" {
+		return CompileResponse{}, fmt.Errorf("compile error: %v", raw.Error)
+	}
+
+	return CompileResponse{
+		Success: raw.Success,
+		Code:    raw.Code,
+		Stdout:  raw.Stdout,
+		Stderr:  raw.Stderr,
+	}, nil
+}
+
 func (c *Client) Format(params FormatRequest) (FormatResponse, error) {
 	raw, err := clientPost[FormatRequest, rawFormatResponse](c, "/format", params)
 	if err != nil {
@@ -99,6 +117,7 @@ func clientPost[P, T any](c *Client, path string, params P) (T, error) {
 	if err := json.NewEncoder(body).Encode(params); err != nil {
 		return zero, err
 	}
+	fmt.Println(body)
 
 	req, err := http.NewRequest(http.MethodPost, c.host+path, body)
 	if err != nil {
